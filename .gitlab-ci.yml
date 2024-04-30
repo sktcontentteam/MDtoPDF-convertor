@@ -1,0 +1,31 @@
+pages:
+  stage: deploy
+  image:
+    name: pandoc/latex
+    entrypoint: ["/bin/sh", "-c"]
+  script:
+  - |
+    find . -type f -name "*.md" -print0 | while read -d $'\0' file
+    do
+      pandoc --resource-path .:images -f markdown -t pdf --output="${file%.*}.pdf" "$file"
+    done
+    curr_dir=$(pwd)
+    echo "<h1>${curr_dir##*/}</h1><br/>">>index.html
+    
+    find . -type f -name "*.pdf" -print0 | while read -d $'\0' file
+    do
+      curr_dir=${curr_dir##*/}
+      file_name=$(basename "$file")
+      loc="window.location.hostname+'/${curr_dir}${file_name}'"
+      echo "<img src='https://img.icons8.com/color/28/null/copy--v1.png' onClick=\"navigator.clipboard.writeText(${loc});\"/>">>index.html      
+      echo "<a href=\"${file}\" target=\"blank\">${file_name}</a><br/>">>index.html
+    done
+
+  - mkdir .public
+  - cp -r * .public
+  - mv .public public
+  artifacts:
+    paths:
+    - public
+  only:
+    - main
